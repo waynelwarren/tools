@@ -13,6 +13,7 @@ n -t [lines]
 n -v
 n -h
 n -c cmd-line
+n -l cmd-line
 program | n
 n < file.txt
 
@@ -22,6 +23,7 @@ where:
   -v    - edit notes
   -h    - this help message
   -c    - execute cmd-line & note all stdout
+  -l    - execute cmd-line, don't note stdout
   stdin - note line created for each stdin line
   
 macros:
