@@ -58,7 +58,7 @@ void log_line(FILE *fp, int argc, char *argv[])
     fprintf(fp, "%s%s", scratch, sep);
     for (int i=0; i<argc; i++) {
         char *str;
-        if (strcasecmp(argv[i], "@pwd") == 0)
+        if (strncasecmp(argv[i], "@pwd", 4) == 0)
             str = get_current_dir_name();
         else
             str = argv[i];
@@ -97,7 +97,7 @@ void n_vi(void)
     system("vi " FN);
 }
 
-void n_cmd(int argc, char *argv[])
+void n_cmd(int argc, char *argv[], bool log_output)
 {
     char cmd[2000];
     FILE *fp = fopen(FN, "a");
@@ -111,7 +111,6 @@ void n_cmd(int argc, char *argv[])
         strcat(cmd, argv[i]);
         strcat(cmd, " ");
     }
-    strcat(cmd, " | n");
 
     char *av[1];
     av[0] = cmd;
@@ -119,6 +118,9 @@ void n_cmd(int argc, char *argv[])
     log_line(fp, 1, av);
     strcpy(sep, "|");
     fclose(fp);
+
+    if (log_output)
+        strcat(cmd, " | n");
     system(cmd);
 }
 
@@ -147,12 +149,15 @@ int main(int argc, char *argv[])
     }
     else if (strcmp(argv[1], "-v") == 0)
         n_vi();
-    else if (strcmp(argv[1], "-c") == 0) {
+    else if (strcmp(argv[1], "-c") == 0 || strcmp(argv[1], "-l") == 0) {
         if (argc < 3) {
             fprintf(stderr, "Need cmd\n");
             usage();
         }
-        n_cmd(argc-2, argv+2);
+        bool log_output = false;
+        if (argv[1][1] == 'c')
+            log_output = true;
+        n_cmd(argc-2, argv+2, log_output);
     }
     else
         n_append(argc-1, argv+1);
