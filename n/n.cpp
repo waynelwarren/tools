@@ -3,11 +3,11 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-
-#define FN "/home/wayne/n/notes.txt"
+#include <pwd.h>
 
 static char scratch[2000];
 static char sep[30];
+static char notesfile[200];
 
 void usage(void)
 {
@@ -16,6 +16,7 @@ void usage(void)
                     "       n -t [lines]\n"
                     "       n -v\n"
                     "       n -c cmd-line\n"
+                    "       n -l cmd-line\n"
                     "       n -h\n"
                     "       program | n\n"
                     "       n < file.txt\n"
@@ -25,6 +26,7 @@ void usage(void)
                     "       -v    - edit notes\n"
                     "       -h    - this help message\n"
                     "       -c    - execute cmd-line & note all stdout\n"
+                    "       -l    - execute cmd-line, don't note stdout\n"
                     "       stdin - note line created for each stdin line\n"
                     "  macros:\n"
                     "       @pwd current directory\n"
@@ -37,7 +39,8 @@ void n_grep(int argc, char *argv[])
     for (int i=0; i<argc; i++) {
         strcpy(scratch, "grep ");
         strcat(scratch, argv[i]);
-        strcat(scratch, " " FN);
+        strcat(scratch, " ");
+        strcat(scratch, notesfile);
         system(scratch);
     }
 }
@@ -45,17 +48,18 @@ void n_grep(int argc, char *argv[])
 void n_tail(int lines)
 {
     strcpy(scratch, "tail -n ");
-    sprintf(scratch+strlen(scratch), "%d " FN, lines);
+    sprintf(scratch+strlen(scratch), "%d %s", lines, notesfile);
     system(scratch);
 }
 
-void log_line(FILE *fp, int argc, char *argv[])
+void log_line(FILE *fp, int argc, char *argv[], bool incl_cwd)
 {
     struct tm *ltime;
     const time_t secs = time(NULL);
     ltime = localtime(&secs);
     strftime(scratch, sizeof(scratch), "%F %T", ltime);
     fprintf(fp, "%s%s", scratch, sep);
+
     for (int i=0; i<argc; i++) {
         char *str;
         if (strncasecmp(argv[i], "@pwd", 4) == 0)
@@ -64,14 +68,18 @@ void log_line(FILE *fp, int argc, char *argv[])
             str = argv[i];
         fprintf(fp, " %s", str);
     }
+
+    if (incl_cwd)
+        fprintf(fp, " [%s]", get_current_dir_name());
+
     fprintf(fp, "\n");
 }
 
 void n_append(int argc, char *argv[])
 {
-    FILE *fp = fopen(FN, "a");
+    FILE *fp = fopen(notesfile, "a");
     if (fp == NULL) {
-        fprintf(stderr, "Unable to open " FN "\n");
+        fprintf(stderr, "Unable to open %s\n", notesfile);
         exit(1);
     }
     if (argc == 0) {
@@ -82,27 +90,29 @@ void n_append(int argc, char *argv[])
         while (fgets(line, sizeof(line)-1, stdin)) {
             printf("%s", line);
             line[strlen(line)-1] = '\0';
-            log_line(fp, 1, av);
+            log_line(fp, 1, av, false);
         }
         strcpy(sep, "|");
     }
     else {
-        log_line(fp, argc, argv);
+        log_line(fp, argc, argv, false);
     }
     fclose(fp);
 }
 
 void n_vi(void)
 {
-    system("vi " FN);
+    strcpy(scratch, "vi ");
+    strcat(scratch, notesfile);
+    system(scratch);
 }
 
 void n_cmd(int argc, char *argv[], bool log_output)
 {
     char cmd[2000];
-    FILE *fp = fopen(FN, "a");
+    FILE *fp = fopen(notesfile, "a");
     if (fp == NULL) {
-        fprintf(stderr, "Unable to open " FN "\n");
+        fprintf(stderr, "Unable to open %s\n", notesfile);
         exit(1);
     }
 
@@ -114,8 +124,11 @@ void n_cmd(int argc, char *argv[], bool log_output)
 
     char *av[1];
     av[0] = cmd;
-    strcpy(sep, "|CMD$ ");
-    log_line(fp, 1, av);
+    if (log_output)
+        strcpy(sep, "|CMD$ ");
+    else
+        strcpy(sep, "|RUN$ ");
+    log_line(fp, 1, av, true);
     strcpy(sep, "|");
     fclose(fp);
 
@@ -127,6 +140,19 @@ void n_cmd(int argc, char *argv[], bool log_output)
 int main(int argc, char *argv[])
 {
     int lines;
+    const char *homedir;
+
+    if ((homedir = getenv("HOME")) == NULL)
+        homedir = getpwuid(getuid())->pw_dir;
+
+    strcpy(notesfile, homedir);
+    strcat(notesfile, "/n");
+
+    strcpy(scratch, "mkdir -p ");
+    strcat(scratch, notesfile);
+    system(scratch);
+
+    strcat(notesfile, "/notes.txt");
 
     strcpy(sep, "|");
     if (argc == 1)
