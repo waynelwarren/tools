@@ -37,7 +37,7 @@ void usage(void)
 void n_grep(int argc, char *argv[])
 {
     for (int i=0; i<argc; i++) {
-        strcpy(scratch, "grep ");
+        strcpy(scratch, "grep -i ");
         strcat(scratch, argv[i]);
         strcat(scratch, " ");
         strcat(scratch, notesfile);
