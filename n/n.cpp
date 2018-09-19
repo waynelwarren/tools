@@ -11,7 +11,7 @@ static char notesfile[200];
 
 void usage(void)
 {
-    fprintf(stderr, "usage: n text of note\n"
+    fprintf(stderr, "usage: [n|nn] text of note\n"
                     "       n -g \"regx [regx]\"\n"
                     "       n -t [lines]\n"
                     "       n -v\n"
@@ -140,17 +140,22 @@ void n_cmd(int argc, char *argv[], bool log_output)
 int main(int argc, char *argv[])
 {
     int lines;
-    const char *homedir;
 
-    if ((homedir = getenv("HOME")) == NULL)
-        homedir = getpwuid(getuid())->pw_dir;
+    if (strcmp(argv[0], "nn") == 0) {
+        strcpy(notesfile, ".");
+    }
+    else {
+        const char *homedir;
+        if ((homedir = getenv("HOME")) == NULL)
+            homedir = getpwuid(getuid())->pw_dir;
 
-    strcpy(notesfile, homedir);
-    strcat(notesfile, "/n");
+        strcpy(notesfile, homedir);
+        strcat(notesfile, "/n");
 
-    strcpy(scratch, "mkdir -p ");
-    strcat(scratch, notesfile);
-    system(scratch);
+        strcpy(scratch, "mkdir -p ");
+        strcat(scratch, notesfile);
+        system(scratch);
+    }
 
     strcat(notesfile, "/notes.txt");
 
