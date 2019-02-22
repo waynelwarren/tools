@@ -1,6 +1,7 @@
 # n - take notes
 Keep a timestamped log of notes in `~/n/notes.txt`. Quick access to file through `-v` (edit), `-t` (tail). Grep contents with `-g`. Macro expansion of `@pwd` to current directory. Log a command & its output with `-c`.
 
+Link `n` as `nn` to activate local directory storage (i.e. `notes.txt` will be stored in the current directory rather than in `~/n`.
 ## Build
 ```
 make
